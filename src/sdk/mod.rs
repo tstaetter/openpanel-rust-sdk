@@ -1,3 +1,5 @@
+pub mod user;
+
 use crate::TrackerResult;
 use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::{Body, Response};
@@ -98,7 +100,53 @@ impl Tracker {
           }
         });
 
-        dbg!(serde_json::to_string(&payload)?);
+        self.send_request(payload).await
+    }
+
+    /// Identify user on OpenPanel
+    pub async fn identify(&self, user: user::IdentifyUser) -> TrackerResult<Response> {
+        let payload = serde_json::json!({
+          "type": TrackType::Identify,
+          "payload": user
+        });
+
+        self.send_request(payload).await
+    }
+
+    /// Decrement property value on OpenPanel
+    pub async fn decrement(
+        &self,
+        profile_id: String,
+        property: String,
+        value: i64,
+    ) -> TrackerResult<Response> {
+        let payload = serde_json::json!({
+          "type": TrackType::Decrement,
+          "payload": {
+            "profileId": profile_id,
+            "property": property,
+            "value": value
+          }
+        });
+
+        self.send_request(payload).await
+    }
+
+    /// Decrement property value on OpenPanel
+    pub async fn increment(
+        &self,
+        profile_id: String,
+        property: String,
+        value: i64,
+    ) -> TrackerResult<Response> {
+        let payload = serde_json::json!({
+          "type": TrackType::Increment,
+          "payload": {
+            "profileId": profile_id,
+            "property": property,
+            "value": value
+          }
+        });
 
         self.send_request(payload).await
     }
@@ -210,6 +258,60 @@ mod tests {
         properties.insert("name".to_string(), "test".to_string());
 
         let response = tracker.track("test_event".to_string(), properties).await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_identify_user() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let mut properties = HashMap::new();
+
+        properties.insert("name".to_string(), "test".to_string());
+
+        let user = user::IdentifyUser {
+            profile_id: "test_profile_id".to_string(),
+            email: "".to_string(),
+            first_name: "test".to_string(),
+            last_name: "test".to_string(),
+            properties,
+        };
+
+        let response = tracker.identify(user).await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_increment_property() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let response = tracker
+            .increment(
+                "test_profile_id".to_string(),
+                "test_property".to_string(),
+                1,
+            )
+            .await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_decrement_property() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let response = tracker
+            .decrement(
+                "test_profile_id".to_string(),
+                "test_property".to_string(),
+                1,
+            )
+            .await?;
 
         assert_eq!(response.status(), 200);
 

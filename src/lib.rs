@@ -1,4 +1,4 @@
-mod sdk;
+pub mod sdk;
 
 pub type TrackerResult<T> = Result<T, TrackerError>;
 
