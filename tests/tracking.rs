@@ -1,4 +1,4 @@
-use openpanel_rust::sdk::{user, Tracker};
+use openpanel_sdk::sdk::{user, Tracker};
 use std::collections::HashMap;
 
 #[tokio::test]

@@ -2,6 +2,23 @@
 name = "openpanel_rust"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85.1"
+description = """
+OpenPanel SDK for tracking events
+"""
+authors = ["Thomas Stätter <thomas.staetter@gmail.com>"]
+license = "MIT"
+keywords = ["web-tracking", "event-tracking", "openpanel"]
+categories = ["web-programming"]
+readme = "README.md"
+repository = "https://github.com/tstaetter/openpanel-rust-sdk.git"
+homepage = "https://github.com/tstaetter/openpanel-rust-sdk"
+
+[lib]
+name = "openpanel_sdk"
+path = "src/lib.rs"
+test = true
+crate-type = ["lib"]
 
 [dependencies]
 dotenvy = "0.15.7"

@@ -21,4 +21,3 @@ run `cargo test`
 ## TODO
 
 - Add global properties
-- publish on [crates.io](https://crates.io/)
