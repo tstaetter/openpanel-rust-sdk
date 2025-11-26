@@ -1,4 +1,4 @@
-# OpenPanel Rust SDK
+# [OpenPanel](https://openpanel.dev/) Rust SDK
 
 ## Features
 
