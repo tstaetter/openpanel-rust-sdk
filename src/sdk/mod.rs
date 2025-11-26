@@ -1,4 +1,4 @@
-mod user;
+pub mod user;
 
 use crate::TrackerResult;
 use reqwest::header::{HeaderMap, HeaderName};
