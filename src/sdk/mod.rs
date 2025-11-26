@@ -1,3 +1,5 @@
+mod user;
+
 use crate::TrackerResult;
 use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::{Body, Response};
@@ -98,7 +100,15 @@ impl Tracker {
           }
         });
 
-        dbg!(serde_json::to_string(&payload)?);
+        self.send_request(payload).await
+    }
+
+    /// Identify user on OpenPanel
+    pub async fn identify(&self, user: user::IdentifyUser) -> TrackerResult<Response> {
+        let payload = serde_json::json!({
+          "type": TrackType::Identify,
+          "payload": user
+        });
 
         self.send_request(payload).await
     }
@@ -210,6 +220,28 @@ mod tests {
         properties.insert("name".to_string(), "test".to_string());
 
         let response = tracker.track("test_event".to_string(), properties).await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_identify_user() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let mut properties = HashMap::new();
+
+        properties.insert("name".to_string(), "test".to_string());
+
+        let user = user::IdentifyUser {
+            profile_id: "test_profile_id".to_string(),
+            email: "".to_string(),
+            first_name: "test".to_string(),
+            last_name: "test".to_string(),
+            properties,
+        };
+
+        let response = tracker.identify(user).await?;
 
         assert_eq!(response.status(), 200);
 
