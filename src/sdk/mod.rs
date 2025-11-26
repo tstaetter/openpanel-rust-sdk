@@ -113,6 +113,44 @@ impl Tracker {
         self.send_request(payload).await
     }
 
+    /// Decrement property value on OpenPanel
+    pub async fn decrement(
+        &self,
+        profile_id: String,
+        property: String,
+        value: i64,
+    ) -> TrackerResult<Response> {
+        let payload = serde_json::json!({
+          "type": TrackType::Decrement,
+          "payload": {
+            "profileId": profile_id,
+            "property": property,
+            "value": value
+          }
+        });
+
+        self.send_request(payload).await
+    }
+
+    /// Decrement property value on OpenPanel
+    pub async fn increment(
+        &self,
+        profile_id: String,
+        property: String,
+        value: i64,
+    ) -> TrackerResult<Response> {
+        let payload = serde_json::json!({
+          "type": TrackType::Increment,
+          "payload": {
+            "profileId": profile_id,
+            "property": property,
+            "value": value
+          }
+        });
+
+        self.send_request(payload).await
+    }
+
     /// Actually send the request to the API
     async fn send_request(&self, payload: serde_json::Value) -> TrackerResult<Response> {
         tracing::debug!("Sending request to {}", self.api_url);
@@ -242,6 +280,38 @@ mod tests {
         };
 
         let response = tracker.identify(user).await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_increment_property() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let response = tracker
+            .increment(
+                "test_profile_id".to_string(),
+                "test_property".to_string(),
+                1,
+            )
+            .await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_decrement_property() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let response = tracker
+            .decrement(
+                "test_profile_id".to_string(),
+                "test_property".to_string(),
+                1,
+            )
+            .await?;
 
         assert_eq!(response.status(), 200);
 
