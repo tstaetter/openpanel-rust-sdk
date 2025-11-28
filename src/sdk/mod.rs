@@ -1,6 +1,6 @@
 pub mod user;
 
-use crate::TrackerResult;
+use crate::{TrackerError, TrackerResult};
 use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::{Body, Response};
 use serde::Serialize;
@@ -31,6 +31,7 @@ pub struct Tracker {
     client_secret: String,
     headers: HeaderMap,
     payload: Option<serde_json::Value>,
+    disabled: bool,
 }
 
 impl Tracker {
@@ -49,6 +50,7 @@ impl Tracker {
             client_secret,
             headers: HeaderMap::new(),
             payload: None,
+            disabled: false,
         })
     }
 
@@ -84,6 +86,12 @@ impl Tracker {
     pub fn with_payload(mut self, payload: serde_json::Value) -> Self {
         self.payload = Some(payload);
 
+        self
+    }
+
+    /// Disable sending events to OpenPanel
+    pub fn disable(mut self) -> Self {
+        self.disabled = true;
         self
     }
 
@@ -153,6 +161,10 @@ impl Tracker {
 
     /// Actually send the request to the API
     async fn send_request(&self, payload: serde_json::Value) -> TrackerResult<Response> {
+        if self.disabled {
+            return Err(TrackerError::Disabled);
+        }
+
         tracing::debug!("Sending request to {}", self.api_url);
 
         let client = reqwest::Client::new();
@@ -246,6 +258,28 @@ mod tests {
         let response = tracker.send_request(payload).await?;
 
         assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cannot_send_request_if_disabled() -> anyhow::Result<()> {
+        let payload = json!({
+          "type": TrackType::Track,
+          "payload": {
+            "name": "test_event",
+            "properties": {
+              "name": "test"
+            }
+          }
+        });
+
+        let tracker = Tracker::try_new_from_env()?
+            .with_default_headers()?
+            .disable();
+        let response = tracker.send_request(payload).await;
+
+        assert!(response.is_err());
 
         Ok(())
     }

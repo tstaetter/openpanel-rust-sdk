@@ -22,4 +22,6 @@ pub enum TrackerError {
     HeaderName(#[from] reqwest::header::InvalidHeaderName),
     #[error("Invalid header value: {0:?}")]
     HeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+    #[error("Tracker is disabled")]
+    Disabled,
 }
