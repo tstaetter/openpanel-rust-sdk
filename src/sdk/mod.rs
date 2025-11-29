@@ -127,9 +127,14 @@ impl Tracker {
     pub async fn track(
         &self,
         event: String,
-        mut properties: HashMap<String, String>,
+        properties: Option<HashMap<String, String>>,
     ) -> TrackerResult<Response> {
-        properties.extend(self.global_props.clone());
+        let properties = if let Some(mut properties) = properties {
+            properties.extend(self.global_props.clone());
+            properties
+        } else {
+            HashMap::new()
+        };
 
         let payload = serde_json::json!({
           "type": TrackType::Track,
@@ -320,7 +325,9 @@ mod tests {
 
         properties.insert("name".to_string(), "rust".to_string());
 
-        let response = tracker.track("test_event".to_string(), properties).await?;
+        let response = tracker
+            .track("test_event".to_string(), Some(properties))
+            .await?;
 
         assert_eq!(response.status(), 200);
 
