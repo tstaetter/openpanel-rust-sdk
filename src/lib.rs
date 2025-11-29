@@ -1,7 +1,10 @@
+//! OpenPanel SDK for tracking events
 pub mod sdk;
 
+/// Result type for SDK functions
 pub type TrackerResult<T> = Result<T, TrackerError>;
 
+/// Errors that can occur when using the SDK
 #[derive(Debug, thiserror::Error)]
 pub enum TrackerError {
     #[error("Error loading env variables: {0:?}")]

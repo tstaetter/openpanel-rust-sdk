@@ -1,3 +1,23 @@
+//! OpenPanel SDK for tracking events
+//!
+//! # Example
+//!
+//! ```rust
+//! use openpanel_sdk::sdk::Tracker;
+//! use std::collections::HashMap;
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+//!     let mut properties = HashMap::new();
+//!
+//!     properties.insert("name".to_string(), "rust".to_string());
+//!
+//!     tracker.track("test".to_string(), properties).await?;
+//!
+//!     Ok(())
+//! }
+//! ```
 pub mod user;
 
 use crate::{TrackerError, TrackerResult};
@@ -8,12 +28,17 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
 
+/// Type of event to track
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "lowercase")]
 enum TrackType {
+    /// Decrement property value on OpenPanel
     Decrement,
+    /// Identify property value on OpenPanel
     Identify,
+    /// Increment property value on OpenPanel
     Increment,
+    /// Track event on OpenPanel
     #[default]
     Track,
 }
@@ -24,6 +49,7 @@ impl Display for TrackType {
     }
 }
 
+/// OpenPanel SDK for tracking events
 #[derive(Debug)]
 pub struct Tracker {
     api_url: String,
@@ -74,7 +100,8 @@ impl Tracker {
         Ok(self)
     }
 
-    /// Set custom header for tracker object
+    /// Set a custom header for a tracker object.
+    /// Use this to set custom headers used for e.g. geo location
     pub fn with_header(mut self, key: String, value: String) -> TrackerResult<Self> {
         self.headers
             .insert(HeaderName::from_str(key.as_str())?, value.parse()?);
@@ -83,6 +110,28 @@ impl Tracker {
     }
 
     /// Set payload for tracker object
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use openpanel_sdk::sdk::Tracker;
+    ///
+    /// fn test() -> anyhow::Result<()> {
+    ///     let payload = serde_json::json!({
+    ///         "payload": {
+    ///         "name": "test_event",
+    ///         "properties": {
+    ///             "name": "rust"
+    ///         }
+    ///         }
+    ///     });
+    ///     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+    ///
+    ///     tracker.with_payload(payload);
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn with_payload(mut self, payload: serde_json::Value) -> Self {
         self.payload = Some(payload);
 
@@ -95,6 +144,7 @@ impl Tracker {
         self
     }
 
+    /// Track event on OpenPanel
     pub async fn track(
         &self,
         event: String,
@@ -166,6 +216,10 @@ impl Tracker {
         }
 
         tracing::debug!("Sending request to {}", self.api_url);
+        println!(
+            "Sending payload {:?}",
+            serde_json::to_string_pretty(&payload)?
+        );
 
         let client = reqwest::Client::new();
         let res = client
@@ -303,13 +357,13 @@ mod tests {
         let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
         let mut properties = HashMap::new();
 
-        properties.insert("name".to_string(), "test".to_string());
+        properties.insert("name".to_string(), "rust".to_string());
 
         let user = user::IdentifyUser {
             profile_id: "test_profile_id".to_string(),
-            email: "".to_string(),
-            first_name: "test".to_string(),
-            last_name: "test".to_string(),
+            email: "rust@test.com".to_string(),
+            first_name: "Rust".to_string(),
+            last_name: "Rust".to_string(),
             properties,
         };
 
