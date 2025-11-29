@@ -13,7 +13,7 @@
 //!
 //!     properties.insert("name".to_string(), "rust".to_string());
 //!
-//!     tracker.track("test".to_string(), properties).await?;
+//!     tracker.track("test".to_string(), Some(properties)).await?;
 //!
 //!     Ok(())
 //! }
@@ -56,7 +56,7 @@ pub struct Tracker {
     client_id: String,
     client_secret: String,
     headers: HeaderMap,
-    payload: Option<serde_json::Value>,
+    global_props: HashMap<String, String>,
     disabled: bool,
 }
 
@@ -75,7 +75,7 @@ impl Tracker {
             client_id,
             client_secret,
             headers: HeaderMap::new(),
-            payload: None,
+            global_props: HashMap::new(),
             disabled: false,
         })
     }
@@ -109,31 +109,10 @@ impl Tracker {
         Ok(self)
     }
 
-    /// Set payload for tracker object
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openpanel_sdk::sdk::Tracker;
-    ///
-    /// fn test() -> anyhow::Result<()> {
-    ///     let payload = serde_json::json!({
-    ///         "payload": {
-    ///         "name": "test_event",
-    ///         "properties": {
-    ///             "name": "rust"
-    ///         }
-    ///         }
-    ///     });
-    ///     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
-    ///
-    ///     tracker.with_payload(payload);
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
-    pub fn with_payload(mut self, payload: serde_json::Value) -> Self {
-        self.payload = Some(payload);
+    /// Set global properties for tracker object. Global properties are added to every
+    /// `track` and `identify` event sent.
+    pub fn with_global_properties(mut self, properties: HashMap<String, String>) -> Self {
+        self.global_props = properties;
 
         self
     }
@@ -148,8 +127,9 @@ impl Tracker {
     pub async fn track(
         &self,
         event: String,
-        properties: HashMap<String, String>,
+        properties: Option<HashMap<String, String>>,
     ) -> TrackerResult<Response> {
+        let properties = self.create_properties_with_globals(properties);
         let payload = serde_json::json!({
           "type": TrackType::Track,
           "payload": {
@@ -162,7 +142,9 @@ impl Tracker {
     }
 
     /// Identify user on OpenPanel
-    pub async fn identify(&self, user: user::IdentifyUser) -> TrackerResult<Response> {
+    pub async fn identify(&self, mut user: user::IdentifyUser) -> TrackerResult<Response> {
+        user.properties = self.create_properties_with_globals(Some(user.properties));
+
         let payload = serde_json::json!({
           "type": TrackType::Identify,
           "payload": user
@@ -207,6 +189,19 @@ impl Tracker {
         });
 
         self.send_request(payload).await
+    }
+
+    /// Extend given properties with global properties
+    fn create_properties_with_globals(
+        &self,
+        properties: Option<HashMap<String, String>>,
+    ) -> HashMap<String, String> {
+        if let Some(mut properties) = properties {
+            properties.extend(self.global_props.clone());
+            properties
+        } else {
+            self.global_props.clone()
+        }
     }
 
     /// Actually send the request to the API
@@ -279,19 +274,23 @@ mod tests {
     }
 
     #[test]
-    fn can_set_payload() -> anyhow::Result<()> {
-        let payload = json!({
-          "type": TrackType::Track,
-          "payload": {
-            "name": "test_event",
-            "properties": {
-              "name": "test"
-            }
-          }
-        });
-        let tracker = Tracker::try_new_from_env()?.with_payload(payload.clone());
+    fn can_create_properties_with_globals() -> anyhow::Result<()> {
+        let properties = HashMap::from([("test".to_string(), "test".to_string())]);
+        let tracker = Tracker::try_new_from_env()?.with_global_properties(properties.clone());
+        let properties_with_globals =
+            tracker.create_properties_with_globals(Some(properties.clone()));
 
-        assert_eq!(tracker.payload, Some(payload));
+        assert_eq!(tracker.global_props, properties_with_globals);
+
+        Ok(())
+    }
+
+    #[test]
+    fn can_set_global_properties() -> anyhow::Result<()> {
+        let properties = HashMap::from([("test".to_string(), "test".to_string())]);
+        let tracker = Tracker::try_new_from_env()?.with_global_properties(properties.clone());
+
+        assert_eq!(tracker.global_props, properties);
 
         Ok(())
     }
@@ -345,7 +344,9 @@ mod tests {
 
         properties.insert("name".to_string(), "rust".to_string());
 
-        let response = tracker.track("test_event".to_string(), properties).await?;
+        let response = tracker
+            .track("test_event".to_string(), Some(properties))
+            .await?;
 
         assert_eq!(response.status(), 200);
 

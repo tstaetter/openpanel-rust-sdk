@@ -17,7 +17,3 @@ see tests for examples
 ## Testing
 
 run `cargo test`
-
-## TODO
-
-- Add global properties
