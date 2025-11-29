@@ -129,13 +129,7 @@ impl Tracker {
         event: String,
         properties: Option<HashMap<String, String>>,
     ) -> TrackerResult<Response> {
-        let properties = if let Some(mut properties) = properties {
-            properties.extend(self.global_props.clone());
-            properties
-        } else {
-            HashMap::new()
-        };
-
+        let properties = self.create_properties_with_globals(properties);
         let payload = serde_json::json!({
           "type": TrackType::Track,
           "payload": {
@@ -149,7 +143,7 @@ impl Tracker {
 
     /// Identify user on OpenPanel
     pub async fn identify(&self, mut user: user::IdentifyUser) -> TrackerResult<Response> {
-        user.properties.extend(self.global_props.clone());
+        user.properties = self.create_properties_with_globals(Some(user.properties));
 
         let payload = serde_json::json!({
           "type": TrackType::Identify,
@@ -195,6 +189,19 @@ impl Tracker {
         });
 
         self.send_request(payload).await
+    }
+
+    /// Extend given properties with global properties
+    fn create_properties_with_globals(
+        &self,
+        properties: Option<HashMap<String, String>>,
+    ) -> HashMap<String, String> {
+        if let Some(mut properties) = properties {
+            properties.extend(self.global_props.clone());
+            properties
+        } else {
+            self.global_props.clone()
+        }
     }
 
     /// Actually send the request to the API
@@ -262,6 +269,18 @@ mod tests {
             tracker.headers.get("test").unwrap(),
             "test".parse::<HeaderValue>()?
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn can_create_properties_with_globals() -> anyhow::Result<()> {
+        let properties = HashMap::from([("test".to_string(), "test".to_string())]);
+        let tracker = Tracker::try_new_from_env()?.with_global_properties(properties.clone());
+        let properties_with_globals =
+            tracker.create_properties_with_globals(Some(properties.clone()));
+
+        assert_eq!(tracker.global_props, properties_with_globals);
 
         Ok(())
     }
