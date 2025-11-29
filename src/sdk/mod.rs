@@ -56,7 +56,7 @@ pub struct Tracker {
     client_id: String,
     client_secret: String,
     headers: HeaderMap,
-    payload: Option<serde_json::Value>,
+    global_props: HashMap<String, String>,
     disabled: bool,
 }
 
@@ -75,7 +75,7 @@ impl Tracker {
             client_id,
             client_secret,
             headers: HeaderMap::new(),
-            payload: None,
+            global_props: HashMap::new(),
             disabled: false,
         })
     }
@@ -109,31 +109,10 @@ impl Tracker {
         Ok(self)
     }
 
-    /// Set payload for tracker object
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use openpanel_sdk::sdk::Tracker;
-    ///
-    /// fn test() -> anyhow::Result<()> {
-    ///     let payload = serde_json::json!({
-    ///         "payload": {
-    ///         "name": "test_event",
-    ///         "properties": {
-    ///             "name": "rust"
-    ///         }
-    ///         }
-    ///     });
-    ///     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
-    ///
-    ///     tracker.with_payload(payload);
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
-    pub fn with_payload(mut self, payload: serde_json::Value) -> Self {
-        self.payload = Some(payload);
+    /// Set global properties for tracker object. Global properties are added to every
+    /// `track` and `identify` event sent.
+    pub fn with_global_properties(mut self, properties: HashMap<String, String>) -> Self {
+        self.global_props = properties;
 
         self
     }
@@ -148,8 +127,10 @@ impl Tracker {
     pub async fn track(
         &self,
         event: String,
-        properties: HashMap<String, String>,
+        mut properties: HashMap<String, String>,
     ) -> TrackerResult<Response> {
+        properties.extend(self.global_props.clone());
+
         let payload = serde_json::json!({
           "type": TrackType::Track,
           "payload": {
@@ -162,7 +143,9 @@ impl Tracker {
     }
 
     /// Identify user on OpenPanel
-    pub async fn identify(&self, user: user::IdentifyUser) -> TrackerResult<Response> {
+    pub async fn identify(&self, mut user: user::IdentifyUser) -> TrackerResult<Response> {
+        user.properties.extend(self.global_props.clone());
+
         let payload = serde_json::json!({
           "type": TrackType::Identify,
           "payload": user
@@ -279,19 +262,11 @@ mod tests {
     }
 
     #[test]
-    fn can_set_payload() -> anyhow::Result<()> {
-        let payload = json!({
-          "type": TrackType::Track,
-          "payload": {
-            "name": "test_event",
-            "properties": {
-              "name": "test"
-            }
-          }
-        });
-        let tracker = Tracker::try_new_from_env()?.with_payload(payload.clone());
+    fn can_set_global_properties() -> anyhow::Result<()> {
+        let properties = HashMap::from([("test".to_string(), "test".to_string())]);
+        let tracker = Tracker::try_new_from_env()?.with_global_properties(properties.clone());
 
-        assert_eq!(tracker.payload, Some(payload));
+        assert_eq!(tracker.global_props, properties);
 
         Ok(())
     }
