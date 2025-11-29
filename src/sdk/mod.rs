@@ -13,7 +13,7 @@
 //!
 //!     properties.insert("name".to_string(), "rust".to_string());
 //!
-//!     tracker.track("test".to_string(), properties).await?;
+//!     tracker.track("test".to_string(), Some(properties)).await?;
 //!
 //!     Ok(())
 //! }
