@@ -216,7 +216,7 @@ impl Tracker {
         }
 
         tracing::debug!("Sending request to {}", self.api_url);
-        println!(
+        tracing::debug!(
             "Sending payload {:?}",
             serde_json::to_string_pretty(&payload)?
         );
