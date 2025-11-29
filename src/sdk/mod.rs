@@ -249,7 +249,7 @@ mod tests {
           "payload": {
             "name": "test_event",
             "properties": {
-              "name": "test"
+              "name": "rust"
             }
           }
         });
@@ -269,7 +269,7 @@ mod tests {
           "payload": {
             "name": "test_event",
             "properties": {
-              "name": "test"
+              "name": "rust"
             }
           }
         });
@@ -289,7 +289,7 @@ mod tests {
         let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
         let mut properties = HashMap::new();
 
-        properties.insert("name".to_string(), "test".to_string());
+        properties.insert("name".to_string(), "rust".to_string());
 
         let response = tracker.track("test_event".to_string(), properties).await?;
 
