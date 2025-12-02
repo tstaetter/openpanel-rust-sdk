@@ -13,7 +13,30 @@
 //!
 //!     properties.insert("name".to_string(), "rust".to_string());
 //!
-//!     tracker.track("test".to_string(), Some(properties)).await?;
+//!     tracker.track("test".to_string(), Some(properties), None).await?;
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! or apply filter
+//!
+//! ```rust
+//! use openpanel_sdk::sdk::Tracker;
+//! use std::collections::HashMap;
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let filter = |properties: HashMap<String, String>| properties.contains_key("not-existing");
+//!     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+//!     let mut properties = HashMap::new();
+//!
+//!     properties.insert("name".to_string(), "rust".to_string());
+//!
+//!     // will return error because properties doesn't contain key "not-existing"
+//!     let result = tracker.track("test".to_string(), Some(properties), Some(&filter)).await;
+//!
+//!     assert!(result.is_err());
 //!
 //!     Ok(())
 //! }
@@ -275,8 +298,6 @@ mod tests {
     fn can_set_custom_header() -> anyhow::Result<()> {
         let tracker =
             Tracker::try_new_from_env()?.with_header("test".to_string(), "test".to_string())?;
-
-        dbg!(&tracker.headers);
 
         assert_eq!(
             tracker.headers.get("test").unwrap(),

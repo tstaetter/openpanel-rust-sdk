@@ -18,7 +18,7 @@ async fn can_track_event() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn can_filter_event() -> anyhow::Result<()> {
+async fn can_apply_no_filter() -> anyhow::Result<()> {
     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
     let mut properties = HashMap::new();
 
@@ -26,15 +26,15 @@ async fn can_filter_event() -> anyhow::Result<()> {
 
     let response = tracker
         .track("test_event".to_string(), Some(properties), None)
-        .await;
+        .await?;
 
-    assert!(response.is_err());
+    assert_eq!(response.status(), 200);
 
     Ok(())
 }
 
 #[tokio::test]
-async fn can_filter_track_event() -> anyhow::Result<()> {
+async fn can_apply_filter_track_event() -> anyhow::Result<()> {
     let filter = |properties: HashMap<String, String>| properties.contains_key("not-existing");
     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
     let mut properties = HashMap::new();
