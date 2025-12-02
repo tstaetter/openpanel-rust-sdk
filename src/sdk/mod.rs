@@ -124,11 +124,21 @@ impl Tracker {
     }
 
     /// Track event on OpenPanel
+    ///
+    /// # Parameters:
+    /// - event [String]: The event name
+    /// - properties [Option<HashMap<String, String>>]: Additional properties to send with the event
+    /// - filter [bool]: If true, the event will not be sent to OpenPanel
     pub async fn track(
         &self,
         event: String,
         properties: Option<HashMap<String, String>>,
+        filter: bool,
     ) -> TrackerResult<Response> {
+        if filter {
+            return Err(TrackerError::Filtered);
+        }
+
         let properties = self.create_properties_with_globals(properties);
         let payload = serde_json::json!({
           "type": TrackType::Track,
@@ -345,7 +355,7 @@ mod tests {
         properties.insert("name".to_string(), "rust".to_string());
 
         let response = tracker
-            .track("test_event".to_string(), Some(properties))
+            .track("test_event".to_string(), Some(properties), false)
             .await?;
 
         assert_eq!(response.status(), 200);

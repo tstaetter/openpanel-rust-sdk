@@ -27,4 +27,6 @@ pub enum TrackerError {
     HeaderValue(#[from] reqwest::header::InvalidHeaderValue),
     #[error("Tracker is disabled")]
     Disabled,
+    #[error("Event filtered")]
+    Filtered,
 }

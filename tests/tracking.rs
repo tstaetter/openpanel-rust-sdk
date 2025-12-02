@@ -9,10 +9,26 @@ async fn can_track_event() -> anyhow::Result<()> {
     properties.insert("name".to_string(), "rust".to_string());
 
     let response = tracker
-        .track("test_event".to_string(), Some(properties))
+        .track("test_event".to_string(), Some(properties), false)
         .await?;
 
     assert_eq!(response.status(), 200);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_filter_event() -> anyhow::Result<()> {
+    let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+    let mut properties = HashMap::new();
+
+    properties.insert("name".to_string(), "rust".to_string());
+
+    let response = tracker
+        .track("test_event".to_string(), Some(properties), true)
+        .await;
+
+    assert!(response.is_err());
 
     Ok(())
 }

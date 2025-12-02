@@ -9,7 +9,7 @@ async fn can_track_event() -> anyhow::Result<()> {
         .with_default_headers()?
         .with_global_properties(global_properties);
     let response = tracker
-        .track("test_event".to_string(), Some(local_properties))
+        .track("test_event".to_string(), Some(local_properties), false)
         .await?;
 
     assert_eq!(response.status(), 200);
