@@ -128,15 +128,18 @@ impl Tracker {
     /// # Parameters:
     /// - event [String]: The event name
     /// - properties [Option<HashMap<String, String>>]: Additional properties to send with the event
-    /// - filter [bool]: If true, the event will not be sent to OpenPanel
+    /// - filter [Option<&dyn Fn(HashMap<String, String>) -> bool>]: If provided, the filter fn will
+    ///     be applied onto the payload. If the result is true, the event won't be sent
     pub async fn track(
         &self,
         event: String,
         properties: Option<HashMap<String, String>>,
-        filter: bool,
+        filter: Option<&dyn Fn(HashMap<String, String>) -> bool>,
     ) -> TrackerResult<Response> {
-        if filter {
-            return Err(TrackerError::Filtered);
+        if let Some(filter) = filter {
+            if !filter(self.create_properties_with_globals(properties.clone())) {
+                return Err(TrackerError::Filtered);
+            }
         }
 
         let properties = self.create_properties_with_globals(properties);
@@ -355,10 +358,27 @@ mod tests {
         properties.insert("name".to_string(), "rust".to_string());
 
         let response = tracker
-            .track("test_event".to_string(), Some(properties), false)
+            .track("test_event".to_string(), Some(properties), None)
             .await?;
 
         assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_filter_track_event() -> anyhow::Result<()> {
+        let filter = |properties: HashMap<String, String>| properties.contains_key("not-existing");
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let mut properties = HashMap::new();
+
+        properties.insert("name".to_string(), "rust".to_string());
+
+        let response = tracker
+            .track("test_event".to_string(), Some(properties), Some(&filter))
+            .await;
+
+        assert!(response.is_err());
 
         Ok(())
     }
