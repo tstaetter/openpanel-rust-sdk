@@ -122,6 +122,8 @@ async fn can_apply_filter_track_event() -> anyhow::Result<()> {
 }
 ```
 
+For more examples, see the [tests](tests) directory.
+
 ## Testing
 
 run `cargo test`
