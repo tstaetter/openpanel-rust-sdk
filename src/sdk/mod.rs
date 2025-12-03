@@ -160,7 +160,7 @@ impl Tracker {
         filter: Option<&dyn Fn(HashMap<String, String>) -> bool>,
     ) -> TrackerResult<Response> {
         if let Some(filter) = filter {
-            if !filter(self.create_properties_with_globals(properties.clone())) {
+            if filter(self.create_properties_with_globals(properties.clone())) {
                 return Err(TrackerError::Filtered);
             }
         }
@@ -389,7 +389,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_filter_track_event() -> anyhow::Result<()> {
-        let filter = |properties: HashMap<String, String>| properties.contains_key("not-existing");
+        let filter = |properties: HashMap<String, String>| properties.contains_key("name");
         let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
         let mut properties = HashMap::new();
 

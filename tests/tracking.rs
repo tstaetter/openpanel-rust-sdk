@@ -35,7 +35,7 @@ async fn can_apply_no_filter() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn can_apply_filter_track_event() -> anyhow::Result<()> {
-    let filter = |properties: HashMap<String, String>| properties.contains_key("not-existing");
+    let filter = |properties: HashMap<String, String>| properties.contains_key("name");
     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
     let mut properties = HashMap::new();
 
