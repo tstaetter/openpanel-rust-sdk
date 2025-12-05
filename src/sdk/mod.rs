@@ -227,6 +227,28 @@ impl Tracker {
         self.send_request(payload).await
     }
 
+    pub async fn revenue(
+        &self,
+        amount: i64,
+        properties: Option<HashMap<String, String>>,
+    ) -> TrackerResult<Response> {
+        let local_props = HashMap::from([("amount".to_string(), amount.to_string())]);
+        let mut properties = self.create_properties_with_globals(properties.clone());
+
+        properties.extend(local_props);
+
+        let payload = serde_json::json!({
+          "type": TrackType::Track,
+          "payload": {
+            "name": "revenue",
+            "amount": amount,
+            "properties": properties
+          }
+        });
+
+        self.send_request(payload).await
+    }
+
     /// Extend given properties with global properties
     fn create_properties_with_globals(
         &self,
@@ -452,6 +474,16 @@ mod tests {
                 1,
             )
             .await?;
+
+        assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_track_revenue() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+        let response = tracker.revenue(100, None).await?;
 
         assert_eq!(response.status(), 200);
 

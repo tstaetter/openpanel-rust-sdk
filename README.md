@@ -122,6 +122,21 @@ async fn can_apply_filter_track_event() -> anyhow::Result<()> {
 }
 ```
 
+### Revenue tracking
+
+Revenue tracking is done easily:
+
+```rust
+async fn can_track_revenue() -> anyhow::Result<()> {
+    let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+    let response = tracker.revenue(100, None).await?;
+
+    assert_eq!(response.status(), 200);
+
+    Ok(())
+}
+```
+
 For more examples, see the [tests](tests) directory.
 
 ## Testing

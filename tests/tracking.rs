@@ -103,3 +103,14 @@ async fn can_decrement_property() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn can_track_revenue() -> anyhow::Result<()> {
+    let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
+    let properties = HashMap::from([("currency".to_string(), "EUR".to_string())]);
+    let response = tracker.revenue(100, Some(properties)).await?;
+
+    assert_eq!(response.status(), 200);
+
+    Ok(())
+}
