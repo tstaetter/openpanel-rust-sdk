@@ -137,6 +137,21 @@ async fn can_track_revenue() -> anyhow::Result<()> {
 }
 ```
 
+If you need to add the device ID, fetch it like this before passing it to the `revenue` method:
+
+```rust
+async fn can_fetch_device_id() -> anyhow::Result<()> {
+    let tracker = Tracker::try_new_from_env()?
+        .with_default_headers()?
+        .with_header("user-agent".to_string(), "some".to_string())?;
+    let id = tracker.fetch_device_id().await?;
+
+    assert!(!id.is_empty());
+
+    Ok(())
+}
+```
+
 For more examples, see the [tests](tests) directory.
 
 ## Testing
