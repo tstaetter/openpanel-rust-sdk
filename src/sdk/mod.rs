@@ -249,6 +249,31 @@ impl Tracker {
         self.send_request(payload).await
     }
 
+    pub async fn fetch_device_id(&self) -> TrackerResult<String> {
+        if self.disabled {
+            return Err(TrackerError::Disabled);
+        }
+
+        let url = format!("{}/device-id", self.api_url);
+        tracing::debug!("Sending request to {}", url);
+
+        let client = reqwest::Client::new();
+        let res = client
+            .get(url.as_str())
+            .headers(self.headers.clone())
+            .send()
+            .await?;
+        let body = res.text().await?;
+        let json = serde_json::from_str::<HashMap<String, String>>(&body)?;
+        let id = if !json.contains_key("deviceId") {
+            return Ok("".to_string());
+        } else {
+            json.get("deviceId").unwrap().to_string()
+        };
+
+        Ok(id)
+    }
+
     /// Extend given properties with global properties
     fn create_properties_with_globals(
         &self,
@@ -486,6 +511,18 @@ mod tests {
         let response = tracker.revenue(100, None).await?;
 
         assert_eq!(response.status(), 200);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_fetch_device_id() -> anyhow::Result<()> {
+        let tracker = Tracker::try_new_from_env()?
+            .with_default_headers()?
+            .with_header("user-agent".to_string(), "some".to_string())?;
+        let id = tracker.fetch_device_id().await?;
+
+        assert!(!id.is_empty());
 
         Ok(())
     }
