@@ -13,7 +13,7 @@
 //!
 //!     properties.insert("name".to_string(), "rust".to_string());
 //!
-//!     tracker.track("test".to_string(), Some(properties), None).await?;
+//!     tracker.track("test".to_string(), None, Some(properties), None).await?;
 //!
 //!     Ok(())
 //! }
@@ -27,14 +27,14 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
-//!     let filter = |properties: HashMap<String, String>| properties.contains_key("not-existing");
+//!     let filter = |properties: HashMap<String, String>| properties.contains_key("name");
 //!     let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
 //!     let mut properties = HashMap::new();
 //!
 //!     properties.insert("name".to_string(), "rust".to_string());
 //!
-//!     // will return error because properties doesn't contain key "not-existing"
-//!     let result = tracker.track("test".to_string(), Some(properties), Some(&filter)).await;
+//!     // will return error because properties contain key "name"
+//!     let result = tracker.track("test".to_string(), None, Some(properties), Some(&filter)).await;
 //!
 //!     assert!(result.is_err());
 //!
@@ -156,6 +156,7 @@ impl Tracker {
     pub async fn track(
         &self,
         event: String,
+        profile_id: Option<String>,
         properties: Option<HashMap<String, String>>,
         filter: Option<&dyn Fn(HashMap<String, String>) -> bool>,
     ) -> TrackerResult<Response> {
@@ -167,11 +168,12 @@ impl Tracker {
 
         let properties = self.create_properties_with_globals(properties);
         let payload = serde_json::json!({
-          "type": TrackType::Track,
-          "payload": {
-            "name": event,
-            "properties": properties
-          }
+            "type": TrackType::Track,
+            "profileId": profile_id,
+            "payload": {
+                "name": event,
+                "properties": properties
+            }
         });
 
         self.send_request(payload).await
@@ -229,24 +231,17 @@ impl Tracker {
 
     pub async fn revenue(
         &self,
+        profile_id: Option<String>,
         amount: i64,
         properties: Option<HashMap<String, String>>,
     ) -> TrackerResult<Response> {
-        let local_props = HashMap::from([("amount".to_string(), amount.to_string())]);
+        let local_props = HashMap::from([("__revenue".to_string(), amount.to_string())]);
         let mut properties = self.create_properties_with_globals(properties.clone());
 
         properties.extend(local_props);
 
-        let payload = serde_json::json!({
-          "type": TrackType::Track,
-          "payload": {
-            "name": "revenue",
-            "amount": amount,
-            "properties": properties
-          }
-        });
-
-        self.send_request(payload).await
+        self.track("revenue".to_string(), profile_id, Some(properties), None)
+            .await
     }
 
     pub async fn fetch_device_id(&self) -> TrackerResult<String> {
@@ -316,6 +311,10 @@ mod tests {
     use super::*;
     use reqwest::header::HeaderValue;
     use serde_json::json;
+
+    fn get_profile_id() -> Option<String> {
+        Some("rust_123123123".to_string())
+    }
 
     #[test]
     fn can_set_default_headers() -> anyhow::Result<()> {
@@ -426,7 +425,12 @@ mod tests {
         properties.insert("name".to_string(), "rust".to_string());
 
         let response = tracker
-            .track("test_event".to_string(), Some(properties), None)
+            .track(
+                "test_event".to_string(),
+                get_profile_id(),
+                Some(properties),
+                None,
+            )
             .await?;
 
         assert_eq!(response.status(), 200);
@@ -443,7 +447,12 @@ mod tests {
         properties.insert("name".to_string(), "rust".to_string());
 
         let response = tracker
-            .track("test_event".to_string(), Some(properties), Some(&filter))
+            .track(
+                "test_event".to_string(),
+                get_profile_id(),
+                Some(properties),
+                Some(&filter),
+            )
             .await;
 
         assert!(response.is_err());
@@ -508,7 +517,7 @@ mod tests {
     #[tokio::test]
     async fn can_track_revenue() -> anyhow::Result<()> {
         let tracker = Tracker::try_new_from_env()?.with_default_headers()?;
-        let response = tracker.revenue(100, None).await?;
+        let response = tracker.revenue(get_profile_id(), 100, None).await?;
 
         assert_eq!(response.status(), 200);
 

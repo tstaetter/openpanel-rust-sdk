@@ -1,6 +1,10 @@
 use openpanel_sdk::sdk::Tracker;
 use std::collections::HashMap;
 
+fn get_profile_id() -> Option<String> {
+    Some("rust_123123123".to_string())
+}
+
 #[tokio::test]
 async fn can_track_event() -> anyhow::Result<()> {
     let global_properties = HashMap::from([("global".to_string(), "property".to_string())]);
@@ -9,7 +13,12 @@ async fn can_track_event() -> anyhow::Result<()> {
         .with_default_headers()?
         .with_global_properties(global_properties);
     let response = tracker
-        .track("test_event".to_string(), Some(local_properties), None)
+        .track(
+            "test_event".to_string(),
+            get_profile_id(),
+            Some(local_properties),
+            None,
+        )
         .await?;
 
     assert_eq!(response.status(), 200);

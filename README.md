@@ -34,7 +34,7 @@ async fn can_track_event() -> anyhow::Result<()> {
     properties.insert("name".to_string(), "rust".to_string());
 
     let response = tracker
-        .track("test_event".to_string(), Some(properties), None)
+        .track("test_event".to_string(), None, Some(properties), None)
         .await?;
 
     assert_eq!(response.status(), 200);
