@@ -169,8 +169,8 @@ impl Tracker {
         let properties = self.create_properties_with_globals(properties);
         let payload = serde_json::json!({
             "type": TrackType::Track,
-            "profileId": profile_id,
             "payload": {
+                "profileId": profile_id,
                 "name": event,
                 "properties": properties
             }
