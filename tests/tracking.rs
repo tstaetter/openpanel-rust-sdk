@@ -1,4 +1,4 @@
-use openpanel_sdk::sdk::{user, Tracker};
+use openpanel_sdk::sdk::{Tracker, user};
 use std::collections::HashMap;
 
 fn get_profile_id() -> Option<String> {
@@ -17,6 +17,7 @@ async fn can_track_event() -> anyhow::Result<()> {
             "test_event".to_string(),
             get_profile_id(),
             Some(properties),
+            None,
             None,
         )
         .await?;
@@ -39,6 +40,7 @@ async fn can_apply_no_filter() -> anyhow::Result<()> {
             get_profile_id(),
             Some(properties),
             None,
+            None,
         )
         .await?;
 
@@ -60,6 +62,7 @@ async fn can_apply_filter_track_event() -> anyhow::Result<()> {
             "test_event".to_string(),
             get_profile_id(),
             Some(properties),
+            None,
             Some(&filter),
         )
         .await;

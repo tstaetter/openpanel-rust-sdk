@@ -18,6 +18,7 @@ async fn can_track_event() -> anyhow::Result<()> {
             get_profile_id(),
             Some(local_properties),
             None,
+            None,
         )
         .await?;
 

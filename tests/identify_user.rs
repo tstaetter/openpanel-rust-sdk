@@ -1,4 +1,4 @@
-use openpanel_sdk::sdk::{user, Tracker};
+use openpanel_sdk::sdk::{Tracker, user};
 use std::collections::HashMap;
 
 struct Address {
